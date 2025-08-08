@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Clinic Inventory System</title>
+<style>
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    max-width: 900px;
+    margin: auto;
+    padding: 1.5em;
+    background-color: #add8e6;
+  }
+
+  h1.main-title {
+    text-align: center;
+    margin-top: 0.3em;
+    margin-bottom: 1em;
+    font-size: 2.3em;
+    font-weight: 700;
+  }
+
+  h2 {
+    margin-bottom: 0.5em;
+    font-weight: 600;
+  }
+
+  .section {
+    background: rgba(255,255,255,0.90);
+    border-radius: 12px;
+    margin-bottom: 2em;
+    padding: 1.2em 1.7em 1.7em 1.7em;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.07);
+  }
+
+  #updateForm {
+    display: none;
+    border-radius: 8px;
+    background: #fcfcfc;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    padding: 1em;
+  }
+
+  table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+    margin-bottom: 1em;
+    background: rgba(255,255,255,0.96);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+  }
+
+  th, td {
+    padding: 12px 10px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+  }
+
+  th {
+    background: #e9f3ff;
+    font-weight: 600;
+  }
+
+  tr:nth-child(even) td {
+    background: #f7fbfc;
+  }
+
+  tr.low-stock td {
+    background: #ffe4e6 !important;
+    font-weight: bold;
+  }
+
+  input, select, button, textarea {
+    margin: 0.4em 0;
+    padding: 0.45em 0.7em;
+    width: 100%;
+    max-width: 260px;
+    font-size: 1em;
+    border-radius: 5px;
+    border: 1px solid #bbb;
+    box-sizing: border-box;
+    transition: border 0.2s;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    border-color: #448aff;
+    outline: none;
+  }
+
+  label {
+    display: block;
+    margin-top: 1em;
+    font-size: 1.01em;
+    font-weight: 500;
+  }
+
+  button {
+    background: linear-gradient(90deg, #5694ff 20%, #36ccee 80%);
+    border: none;
+    color: #fff;
+    padding: 10px 22px;
+    border-radius: 6px;
+    font-weight: bold;
+    letter-spacing: 0.03em;
+    box-shadow: 0 2px 6px rgba(54,173,238,0.08);
+    margin-top: 0.7em;
+    transition: background 0.2s, transform 0.1s;
+    cursor: pointer;
+  }
+
+  button:hover {
+    background: linear-gradient(90deg, #367bd6, #129ca8);
+    transform: translateY(-1px) scale(1.04);
+  }
+
+  .edit-btn {
+    background: #fae388;
+    color: #614c11;
+    font-weight: normal;
+    padding: 5px 16px;
+    border-radius: 5px;
+    border: 1px solid #dec165;
+    transition: background 0.13s;
+    cursor: pointer;
+    font-size: 0.95em;
+  }
+  .edit-btn:hover {
+    background: #ffe6a4;
+  }
+
+  #toggleInventoryBtn {
+    margin: 1.3em auto 1.5em auto;
+    display: block;
+    min-width: 160px;
+    font-size: 1.07em;
+    letter-spacing: 0.02em;
+  }
+
+  ul {
+    margin: 1em 0 0 1em;
+    padding-left: 1.2em;
+  }
+
+  #barcodeResult {
+    margin-top: 0.6em;
+    background: #f8fafd;
+    border-radius: 5px;
+    padding: 0.6em;
+    font-size: 1.05em;
+    min-height: 1.2em;
+    color: #444;
+  }
+
+  @media (max-width: 650px) {
+    body { padding: 0.3em; }
+    .section { padding: 1em 0.6em;}
+    table, th, td { font-size: 0.98em;}
+    input, select, button, textarea { max-width: 98vw; font-size: 1em;}
+  }
+</style>
+</head>
+<body>
+
+<h1 class="main-title">Clinic Inventory Management System</h1>
+
+<!-- Button to toggle inventory visibility -->
+<button id="toggleInventoryBtn" class="btn">View Inventory</button>
+
+<div class="section" id="inventorySection" >
+  <h2>Inventory</h2>
+  <table id="inventoryTable">
+    <thead>
+      <tr>
+        <th>Item ID</th><th>Name</th><th>Category</th><th>Stock</th><th>Expiry</th><th>Supplier</th><th>Barcode</th><th>Actions</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<div class="section" id="addItemSection">
+  <h2>Add New Item</h2>
+  <form id="addForm">
+    <label for="add_name">Name:</label>
+    <input type="text" id="add_name" required />
+
+    <label for="add_item_id">Item ID:</label>
+    <input type="text" id="add_item_id" required />
+
+    <label for="add_category">Category:</label>
+    <input type="text" id="add_category" required />
+
+    <label for="add_current_stock">Current Stock:</label>
+    <input type="number" id="add_current_stock" min="0" required />
+
+    <label for="add_reorder_threshold">Reorder Threshold:</label>
+    <input type="number" id="add_reorder_threshold" min="0" required />
+
+    <label for="add_usage_rate">Usage Rate (items per day):</label>
+    <input type="number" id="add_usage_rate" min="0" step="0.01" />
+
+    <label for="add_expiration_date">Expiration Date:</label>
+    <input type="date" id="add_expiration_date" />
+
+    <label for="add_supplier">Supplier:</label>
+    <input type="text" id="add_supplier" />
+
+    <label for="add_barcode">Barcode:</label>
+    <input type="text" id="add_barcode" />
+
+    <button type="submit">Add Item</button>
+  </form>
+</div>
+
+<div class="section" id="updateItemSection">
+  <h2>Update Item</h2>
+  <form id="updateForm" aria-live="polite" aria-relevant="additions removals">
+    <input type="hidden" id="update_item_id" />
+    
+    <label for="update_name">Name:</label>
+    <input type="text" id="update_name" required />
+
+    <label for="update_category">Category:</label>
+    <input type="text" id="update_category" required />
+
+    <label for="update_current_stock">Current Stock:</label>
+    <input type="number" id="update_current_stock" min="0" required />
+
+    <label for="update_reorder_threshold">Reorder Threshold:</label>
+    <input type="number" id="update_reorder_threshold" min="0" required />
+
+    <label for="update_usage_rate">Usage Rate (items per day):</label>
+    <input type="number" id="update_usage_rate" min="0" step="0.01" />
+
+    <label for="update_expiration_date">Expiration Date:</label>
+    <input type="date" id="update_expiration_date" />
+
+    <label for="update_supplier">Supplier:</label>
+    <input type="text" id="update_supplier" />
+
+    <label for="update_barcode">Barcode:</label>
+    <input type="text" id="update_barcode" />
+
+    <button type="submit">Save Changes</button>
+    <button type="button" id="cancelUpdate">Cancel</button>
+  </form>
+</div>
+
+<div class="section" id="autoOrderSection">
+  <h2>Automated Purchase Orders</h2>
+  <button id="btnGenerateOrders">Generate Purchase Orders</button>
+  <ul id="purchaseOrderList" aria-live="polite" aria-relevant="additions"></ul>
+</div>
+
+<div class="section" id="restockSection">
+  <h2>Restock Notifications</h2>
+  <button id="btnShowRestock">Show Restock Suggestions</button>
+  <ul id="restockList" aria-live="polite" aria-relevant="additions"></ul>
+</div>
+
+<div class="section" id="expirySection">
+  <h2>Near Expiry Items (within 30 days)</h2>
+  <button id="btnShowExpiry">Show Near Expiry Items</button>
+  <ul id="expiryList" aria-live="polite" aria-relevant="additions"></ul>
+</div>
+
+<div class="section" id="usageSection">
+  <h2>Record Usage</h2>
+  <form id="usageForm">
+    <label for="usage_item_id">Item ID:</label>
+    <input type="text" id="usage_item_id" required />
+
+    <label for="usage_quantity">Quantity Used:</label>
+    <input type="number" id="usage_quantity" min="1" required />
+
+    <button type="submit">Record Usage</button>
+  </form>
+</div>
+
+<div class="section" id="barcodeSection">
+  <h2>Scan/Find by Barcode</h2>
+  <input type="text" id="barcode_input" placeholder="Enter barcode" aria-label="Enter barcode to find item" />
+  <button id="btnFindBarcode">Find Item</button>
+  <div id="barcodeResult" role="alert" aria-live="polite" style="margin-top: 0.5em;"></div>
+</div>
+
+<script>
+(function() {
+  // Helper to parse date string "YYYY-MM-DD" to Date object or null
+  function parseDate(str) {
+    if (!str) return null;
+    let d = new Date(str);
+    return isNaN(d) ? null : d;
+  }
+
+  const STORAGE_KEY = "clinic_inventory_data";
+  let inventory = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+  let categories = {};
+  let barcode_index = {};
+
+  function rebuildIndexes() {
+    categories = {};
+    barcode_index = {};
+    Object.values(inventory).forEach(item => {
+      if (!categories[item.category]) categories[item.category] = [];
+      if (!categories[item.category].includes(item.item_id)) categories[item.category].push(item.item_id);
+      if (item.barcode) barcode_index[item.barcode] = item.item_id;
+    });
+  }
+  rebuildIndexes();
+
+  function saveData() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(inventory));
+  }
+
+  function addItem(item) {
+    inventory[item.item_id] = item;
+    if (!categories[item.category]) categories[item.category] = [];
+    categories[item.category].push(item.item_id);
+    if (item.barcode) barcode_index[item.barcode] = item.item_id;
+    saveData();
+  }
+
+  function updateItem(item_id, newData) {
+    let oldItem = inventory[item_id];
+    if (!oldItem) return false;
+
+    if (newData.category && newData.category !== oldItem.category) {
+      categories[oldItem.category] = categories[oldItem.category].filter(id => id !== item_id);
+      if (!categories[newData.category]) categories[newData.category] = [];
+      categories[newData.category].push(item_id);
+    }
+
+    if (oldItem.barcode !== newData.barcode) {
+      if (oldItem.barcode && barcode_index[oldItem.barcode]) {
+        delete barcode_index[oldItem.barcode];
+      }
+      if (newData.barcode) {
+        barcode_index[newData.barcode] = item_id;
+      }
+    }
+
+    inventory[item_id] = {...oldItem, ...newData};
+    saveData();
+    return true;
+  }
+
+  function deleteItem(item_id) {
+    let item = inventory[item_id];
+    if (!item) return false;
+    delete inventory[item_id];
+    categories[item.category] = categories[item.category].filter(id => id !== item_id);
+    if(item.barcode && barcode_index[item.barcode]) {
+      delete barcode_index[item.barcode];
+    }
+    saveData();
+    return true;
+  }
+
+  function checkLowStock() {
+    return Object.values(inventory).filter(item => item.current_stock <= item.reorder_threshold);
+  }
+
+  function suggestOrderQuantity(item, supplyDays = 30) {
+    if (item.usage_rate && item.usage_rate > 0) {
+      return Math.ceil(item.usage_rate * supplyDays);
+    }
+    return item.reorder_threshold * 2;
+  }
+
+  function checkNearExpiry(days=30) {
+    let now = new Date();
+    let limit = new Date(now.getTime() + days*24*60*60*1000);
+    return Object.values(inventory).filter(item => {
+      if (!item.expiration_date) return false;
+      let expDate = parseDate(item.expiration_date);
+      return expDate && expDate >= now && expDate <= limit;
+    });
+  }
+
+  function processUsage(item_id, qty) {
+    if(!inventory[item_id]) return false;
+    inventory[item_id].current_stock = Math.max(0, inventory[item_id].current_stock - qty);
+    saveData();
+    return true;
+  }
+
+  const tbody = document.querySelector("#inventoryTable tbody");
+  function renderInventory() {
+    tbody.innerHTML = "";
+    Object.values(inventory).forEach(item => {
+      const tr = document.createElement("tr");
+      if(item.current_stock <= item.reorder_threshold) tr.classList.add("low-stock");
+
+      tr.innerHTML = `
+        <td>${item.item_id}</td>
+        <td>${item.name}</td>
+        <td>${item.category}</td>
+        <td>${item.current_stock}</td>
+        <td>${item.expiration_date ? item.expiration_date : "N/A"}</td>
+        <td>${item.supplier || ""}</td>
+        <td>${item.barcode || ""}</td>
+        <td><button class="edit-btn" data-id="${item.item_id}" aria-label="Edit ${item.name}">✎ Edit</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function populateUpdateForm(item) {
+    document.getElementById("update_item_id").value = item.item_id;
+    document.getElementById("update_name").value = item.name;
+    document.getElementById("update_category").value = item.category;
+    document.getElementById("update_current_stock").value = item.current_stock;
+    document.getElementById("update_reorder_threshold").value = item.reorder_threshold;
+    document.getElementById("update_usage_rate").value = item.usage_rate || "";
+    document.getElementById("update_expiration_date").value = item.expiration_date || "";
+    document.getElementById("update_supplier").value = item.supplier || "";
+    document.getElementById("update_barcode").value = item.barcode || "";
+  }
+
+  function showUpdateForm(show) {
+    document.getElementById("updateForm").style.display = show ? "block" : "none";
+  }
+
+  function generatePurchaseOrders() {
+    const purchaseList = document.getElementById("purchaseOrderList");
+    purchaseList.innerHTML = "";
+
+    const lowStockItems = checkLowStock();
+    if (lowStockItems.length === 0) {
+      purchaseList.innerHTML = "<li>All stock levels are above reorder thresholds.</li>";
+      return;
+    }
+
+    lowStockItems.forEach(item => {
+      const orderQty = suggestOrderQuantity(item);
+      const li = document.createElement("li");
+      li.textContent = `${item.name} (ID: ${item.item_id}) - Current stock: ${item.current_stock}, Threshold: ${item.reorder_threshold}. Suggested order quantity: ${orderQty} (Supplier: ${item.supplier || "N/A"})`;
+      purchaseList.appendChild(li);
+    });
+  }
+
+  // Event listeners
+
+  document.getElementById("toggleInventoryBtn").addEventListener("click", () => {
+    const invSection = document.getElementById("inventorySection");
+    const btn = document.getElementById("toggleInventoryBtn");
+    if (invSection.style.display === "none" || invSection.style.display === "") {
+      renderInventory();
+      invSection.style.display = "block";
+      btn.textContent = "Hide Inventory";
+    } else {
+      invSection.style.display = "none";
+      btn.textContent = "View Inventory";
+    }
+  });
+
+  document.getElementById("addForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const item_id = document.getElementById("add_item_id").value.trim();
+    if (inventory[item_id]) {
+      alert("Item ID already exists. Choose a different one.");
+      return;
+    }
+    const item = {
+      item_id: item_id,
+      name: document.getElementById("add_name").value.trim(),
+      category: document.getElementById("add_category").value.trim(),
+      current_stock: parseInt(document.getElementById("add_current_stock").value, 10),
+      reorder_threshold: parseInt(document.getElementById("add_reorder_threshold").value, 10),
+      usage_rate: parseFloat(document.getElementById("add_usage_rate").value) || 0,
+      expiration_date: document.getElementById("add_expiration_date").value || null,
+      supplier: document.getElementById("add_supplier").value.trim() || null,
+      barcode: document.getElementById("add_barcode").value.trim() || null
+    };
+    addItem(item);
+    alert(`Added item '${item.name}'`);
+    if (document.getElementById("inventorySection").style.display === "block") {
+      renderInventory();
+    }
+    e.target.reset();
+  });
+
+  tbody.addEventListener("click", e => {
+    if(e.target.classList.contains("edit-btn")) {
+      const itemId = e.target.getAttribute("data-id");
+      const item = inventory[itemId];
+      if(item) {
+        populateUpdateForm(item);
+        showUpdateForm(true);
+        window.scrollTo({top: document.getElementById("updateItemSection").offsetTop, behavior: 'smooth'});
+      }
+    }
+  });
+
+  document.getElementById("updateForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const item_id = document.getElementById("update_item_id").value;
+    if(!inventory[item_id]) {
+      alert("Item not found.");
+      return;
+    }
+    let newData = {
+      name: document.getElementById("update_name").value.trim(),
+      category: document.getElementById("update_category").value.trim(),
+      current_stock: parseInt(document.getElementById("update_current_stock").value, 10),
+      reorder_threshold: parseInt(document.getElementById("update_reorder_threshold").value, 10),
+      usage_rate: parseFloat(document.getElementById("update_usage_rate").value) || 0,
+      expiration_date: document.getElementById("update_expiration_date").value || null,
+      supplier: document.getElementById("update_supplier").value.trim() || null,
+      barcode: document.getElementById("update_barcode").value.trim() || null
+    };
+    updateItem(item_id, newData);
+    alert(`Item '${newData.name}' updated.`);
+    showUpdateForm(false);
+    if (document.getElementById("inventorySection").style.display === "block") {
+      renderInventory();
+    }
+  });
+
+  document.getElementById("cancelUpdate").addEventListener("click", () => {
+    showUpdateForm(false);
+  });
+
+  document.getElementById("btnGenerateOrders").addEventListener("click", () => {
+    generatePurchaseOrders();
+  });
+
+  document.getElementById("btnShowRestock").addEventListener("click", () => {
+    const list = document.getElementById("restockList");
+    list.innerHTML = "";
+    const lowStock = checkLowStock();
+    if(lowStock.length === 0) {
+      list.innerHTML = "<li>No items need restocking.</li>";
+      return;
+    }
+    lowStock.forEach(item => {
+      const qty = suggestOrderQuantity(item);
+      const li = document.createElement("li");
+      li.textContent = `${item.name} (Stock: ${item.current_stock}, Threshold: ${item.reorder_threshold}) ➔ Suggested order quantity: ${qty} (Supplier: ${item.supplier || "N/A"})`;
+      list.appendChild(li);
+    });
+  });
+
+  document.getElementById("btnShowExpiry").addEventListener("click", () => {
+    const list = document.getElementById("expiryList");
+    list.innerHTML = "";
+    const nearExpiry = checkNearExpiry(30);
+    if(nearExpiry.length === 0) {
+      list.innerHTML = "<li>No items nearing expiry in next 30 days.</li>";
+      return;
+    }
+    nearExpiry.forEach(item => {
+      const li = document.createElement("li");
+      li.textContent = `${item.name} (Expires: ${item.expiration_date})`;
+      list.appendChild(li);
+    });
+  });
+
+  document.getElementById("usageForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const item_id = document.getElementById("usage_item_id").value.trim();
+    if(!inventory[item_id]) {
+      alert("Item ID not found.");
+      return;
+    }
+    const qty = parseInt(document.getElementById("usage_quantity").value, 10);
+    if(qty <= 0) {
+      alert("Quantity must be positive.");
+      return;
+    }
+    processUsage(item_id, qty);
+    alert(`Recorded usage of ${qty} for item '${inventory[item_id].name}'`);
+    if (document.getElementById("inventorySection").style.display === "block") {
+      renderInventory();
+    }
+    e.target.reset();
+  });
+
+  document.getElementById("btnFindBarcode").addEventListener("click", () => {
+    const code = document.getElementById("barcode_input").value.trim();
+    const resultDiv = document.getElementById("barcodeResult");
+    if(!code) {
+      resultDiv.textContent = "Please enter a barcode.";
+      return;
+    }
+    let foundItem = null;
+    for(let item of Object.values(inventory)) {
+      if(item.barcode === code) {
+        foundItem = item;
+        break;
+      }
+    }
+    if(foundItem) {
+      resultDiv.innerHTML = `<strong>Found:</strong> ${foundItem.name} (ID: ${foundItem.item_id}), Stock: ${foundItem.current_stock}`;
+    } else {
+      resultDiv.textContent = "No item found with that barcode.";
+    }
+  });
+ 
+  // Initial setup: inventory hidden, no render needed yet
+  showUpdateForm(false);
+})();
+</script>
+
+</body>
+</html>
